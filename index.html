@@ -21,7 +21,10 @@
         </header>
         <div id="encouragement-message" class="text-center text-green-600 font-semibold mb-4 h-6 opacity-0"></div>
         <form id="expense-form" class="space-y-4 mb-8">
-            <!-- ... (表單內容與之前相同) ... -->
+            <div>
+                   <label for="date" class="block text-sm font-medium text-slate-600 mb-1">日期</label>
+                   <input type="date" id="date" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="item" class="block text-sm font-medium text-slate-600 mb-1">項目</label>
@@ -62,10 +65,14 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('expense-form');
+            const dateInput = document.getElementById('date');
             const submitBtn = document.getElementById('submit-btn');
             const btnText = document.getElementById('btn-text');
             const btnLoader = document.getElementById('btn-loader');
             const encouragementEl = document.getElementById('encouragement-message');
+
+            // 設定日期欄位預設為今天
+            dateInput.value = new Date().toLocaleDateString('sv');
 
             const encouragementMessages = [
                 "離去美國旅遊又更近一步了!",
@@ -96,12 +103,13 @@
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
 
+                const date = dateInput.value;
                 const item = document.getElementById('item').value.trim();
                 const amount = parseFloat(document.getElementById('amount').value);
                 const category = document.getElementById('category').value;
 
-                if (!item || isNaN(amount) || amount <= 0) {
-                    alert('請輸入有效的項目與金額！');
+                if (!date || !item || isNaN(amount) || amount <= 0) {
+                    alert('請輸入有效的日期、項目與金額！');
                     return;
                 }
 
@@ -111,7 +119,7 @@
                 btnLoader.classList.remove('hidden');
 
                 const data = {
-                    date: new Date().toLocaleDateString('sv'),
+                    date: date,
                     item: item,
                     amount: amount,
                     category: category
@@ -129,6 +137,8 @@
                     if (data.result === 'success') {
                         showEncouragement();
                         form.reset();
+                        // 重設日期為今天
+                        dateInput.value = new Date().toLocaleDateString('sv');
                     } else {
                         throw new Error(data.message || '發生未知錯誤');
                     }
