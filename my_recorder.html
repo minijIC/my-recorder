@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ireneの極簡記帳本 (雲端版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        #encouragement-message { transition: opacity 0.5s ease-in-out; }
+        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-4">
+    <main class="bg-white w-full max-w-2xl rounded-2xl shadow-lg p-6 md:p-8">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Ireneの極簡記帳本 (雲端版)</h1>
+            <p class="text-slate-500 mt-2">每次的紀錄都會自動同步至 Google 試算表~</p>
+        </header>
+        <div id="encouragement-message" class="text-center text-green-600 font-semibold mb-4 h-6 opacity-0"></div>
+        <form id="expense-form" class="space-y-4 mb-8">
+            <!-- ... (表單內容與之前相同) ... -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="item" class="block text-sm font-medium text-slate-600 mb-1">項目</label>
+                    <input type="text" id="item" placeholder="例如：午餐、買衣服" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-slate-600 mb-1">金額</label>
+                    <input type="number" id="amount" placeholder="例如：150" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+            <div>
+                <label for="category" class="block text-sm font-medium text-slate-600 mb-1">分類</p>
+                <select id="category" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white">
+                    <option value="食">食 (三餐、飲料、零食、聚餐)</option>
+                    <option value="用">用 (日用品、保養品、衣物、3C)</option>
+                    <option value="行">行 (交通費、油錢、停車費)</option>
+                    <option value="樂">樂 (娛樂、旅遊、電影、進修)</option>
+                    <option value="公">公 (公司/公務相關花費)</option>
+                </select>
+            </div>
+            <button type="submit" id="submit-btn" class="w-full flex justify-center items-center bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                <span id="btn-text">新增紀錄</span>
+                <div id="btn-loader" class="loader w-5 h-5 rounded-full border-2 border-white border-t-transparent hidden ml-2"></div>
+            </button>
+        </form>
+        <!-- ... (統計與列表部分與之前相同，但現在只是顯示，主要資料庫在雲端) ... -->
+         <div class="text-center text-slate-500 text-sm mt-4">
+            <p>注意：此處列表僅為臨時顯示，您的所有紀錄都已安全存入 Google 試算表。</p>
+        </div>
+    </main>
+
+    <script>
+        // ===================================================================
+        //  請在這裡貼上您從 Google Apps Script 複製的網頁應用程式網址
+        // ===================================================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwco1hpDwW75K461uXqnQvbUnIwvF1a8GAg-mOU5RaBfBrqsy6m5ezJbiR5tmDcmTdy/exec';
+        // ===================================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('expense-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnLoader = document.getElementById('btn-loader');
+            const encouragementEl = document.getElementById('encouragement-message');
+
+            const encouragementMessages = [
+                "離去美國旅遊又更近一步了!",
+                "太好了！習慣養成!",
+                "堅持下去，您的雲端數據越來越豐富！",
+                "每一筆紀錄，都是對未來的投資。",
+                "很棒的習慣！繼續保持！",
+                "您太棒了！財務自由的路上，您並不孤單。",
+                "記錄，是為了看見更好的自己。",
+                "您的堅持，正在為未來鋪路。",
+                "太厲害了！每一筆都算數！",
+                "財務健康，從這一筆開始累積。",
+                "您正在創造您想要的未來！",
+                "為自己負責的感覺，真好！"
+            ];
+            let encouragementTimeout;
+
+            function showEncouragement() {
+                clearTimeout(encouragementTimeout);
+                const randomIndex = Math.floor(Math.random() * encouragementMessages.length);
+                encouragementEl.textContent = encouragementMessages[randomIndex];
+                encouragementEl.classList.remove('opacity-0');
+                encouragementTimeout = setTimeout(() => {
+                    encouragementEl.classList.add('opacity-0');
+                }, 4000);
+            }
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const item = document.getElementById('item').value.trim();
+                const amount = parseFloat(document.getElementById('amount').value);
+                const category = document.getElementById('category').value;
+
+                if (!item || isNaN(amount) || amount <= 0) {
+                    alert('請輸入有效的項目與金額！');
+                    return;
+                }
+
+                // 禁用按鈕並顯示讀取中
+                submitBtn.disabled = true;
+                btnText.textContent = '傳送中...';
+                btnLoader.classList.remove('hidden');
+
+                const data = {
+                    date: new Date().toLocaleDateString('sv'),
+                    item: item,
+                    amount: amount,
+                    category: category
+                };
+
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(data)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.result === 'success') {
+                        showEncouragement();
+                        form.reset();
+                    } else {
+                        throw new Error(data.message || '發生未知錯誤');
+                    }
+                })
+                .catch(error => {
+                    alert('傳送失敗！請檢查您的網路連線或 Apps Script 設定。\n錯誤訊息: ' + error.message);
+                })
+                .finally(() => {
+                    // 恢復按鈕
+                    submitBtn.disabled = false;
+                    btnText.textContent = '新增紀錄';
+                    btnLoader.classList.add('hidden');
+                    document.getElementById('item').focus();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
